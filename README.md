@@ -62,7 +62,8 @@ We are quite there. Now we configure the uart and open it:
 ```
 
 Now you can talk to your device.
-To read you need to declare input and output buffers:
+
+To read and write you need to declare input and output buffers:
 ```c
     char read_buf [256];
     char write_buf [256];
