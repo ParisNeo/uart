@@ -14,15 +14,6 @@
 
 #include <unistd.h>
 
-void show_tty_cfg_mem(struct termios * tty)
-{
-    printf("----\n");
-    for (int i =0;i<sizeof(struct termios);i++)
-    {
-        printf("%2x",((char*)tty)[i]);
-    }
-    printf("----\n");
-}
 
 /**
  * \fn void init_uart_cfg(uart_cfg * uart)
