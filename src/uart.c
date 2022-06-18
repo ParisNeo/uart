@@ -14,21 +14,40 @@
 
 #include <unistd.h>
 
+void show_tty_cfg_mem(struct termios * tty)
+{
+    printf("----\n");
+    for (int i =0;i<sizeof(struct termios);i++)
+    {
+        printf("%2x",((char*)tty)[i]);
+    }
+    printf("----\n");
+}
 
 /**
  * \fn void init_uart_cfg(uart_cfg * uart)
- * \brief Initializes the udp_cfg structure
+ * \brief Initializes the udp_cfg structure with default values (common values)
  *
- * \param udp      The struct containing the udp configuration
+ * \param udp      The struct containing the uart configuration
  * 
  * \return true if succeeded.
  */
 void init_uart_cfg(uart_cfg * uart)
 {
+    // Use default configuration
     strcpy(uart->port, UART_DEFAULT_COM_PORT);
-    uart->baudrate=UART_DEFAULT_BAUD_RATE;
-    uart->V_MIN=0;
-    uart->V_TIME=10;
+    uart->baudrate                      = UART_DEFAULT_BAUD_RATE;
+    uart->nbits_per_byte                = 8;
+    uart->enable_parity_check           = false;
+    uart->enable_two_stop_bits          = false;
+    uart->enable_hw_flow_control        = false;
+    uart->enable_sw_flow_control        = false;
+    uart->enable_echo                   = false;
+    uart->enable_erasure                = false;
+    uart->enable_newline_echo           = false;
+    uart->enable_bytes_special_handling = false;
+    uart->V_MIN                         = 0;
+    uart->V_TIME                        = 10;
 
 }
 
@@ -43,71 +62,138 @@ void init_uart_cfg(uart_cfg * uart)
 void init_uart_cfg_list(uart_cfg_list * uart_list)
 {
     uart_list->nb_cfg = 0;
-    memset(uart_list->cfg,0, sizeof(uart_list->cfg));
+    for(int i=0;i<UART_MAX_CFG;i++)
+    {
+        init_uart_cfg(&uart_list->uart[i]);
+    }
 }
 
 
 /**
- * \fn bool configure_uart(uart_cfg * cfg)
+ * \fn bool configure_uart(uart_cfg * uart)
  * \brief Configures uart connection
  *
  * \param udp      The struct containing the uart configuration
  * 
  * \return true if succeeded.
  */
-bool configure_uart(uart_cfg * cfg)
+bool configure_uart(uart_cfg * uart)
 {
-	struct  termios tty;
+	struct  termios2 tty;
 
-    cfg->fd = open(cfg->port, O_RDWR);// | O_NOCTTY | O_NDELAY);
+    uart->fd = open(uart->port, O_RDWR);// | O_NOCTTY | O_NDELAY);
 
     // Check for errors
-    if (cfg->fd < 0) {
+    if (uart->fd < 0) {
         printf("Error %i from open: %s\n", errno, strerror(errno));
         return false;
     }
 
     
-    //bzero(&tty, sizeof(struct termios));
-    if (tcgetattr(cfg->fd, &tty)!=0)
+    bzero(&tty, sizeof(struct termios));
+    /*
+    if (tcgetattr(uart->fd, &tty)!=0)
     {
         return false;
+    }*/
+    ioctl(uart->fd, TCGETS2, &tty);
+
+    if(uart->enable_parity_check) 
+        tty.c_cflag |= PARENB; // Set parity bit, enabling parity (most common)
+    else
+        tty.c_cflag &= ~PARENB; // Clear parity bit, disabling parity (most common)
+
+    if(uart->enable_two_stop_bits)
+        tty.c_cflag |= CSTOPB; // Set stop field, two stop bits used in communication (most common)
+    else
+        tty.c_cflag &= ~CSTOPB; // Clear stop field, only one stop bit used in communication (most common)
+
+    tty.c_cflag &= ~CSIZE; // Clear all bits that set the data size
+
+    // Number of bits per byte
+    switch (uart->nbits_per_byte)
+    {
+    case 8:
+        tty.c_cflag |= CS8; // 8 bits per byte (most common)
+        break;
+    case 7:
+        tty.c_cflag |= CS7; // 7 bits per byte (most common)
+        break;
+    case 6:
+        tty.c_cflag |= CS6; // 6 bits per byte (most common)
+        break;
+    case 5:
+        tty.c_cflag |= CS5; // 5 bits per byte (most common)
+        break;
+    
+    default:
+        tty.c_cflag |= CS8; // 8 bits per byte (most common)
+        break;
+
     }
 
+    if(uart->enable_hw_flow_control)
+        tty.c_cflag &= ~CRTSCTS; // Disable RTS/CTS hardware flow control (most common)
+    else
+        tty.c_cflag |= CRTSCTS; // Disable RTS/CTS hardware flow control (most common)
 
-    
-    tty.c_cflag &= ~(CSTOPB);
-    tty.c_cflag &= ~(CRTSCTS);
-
-    tty.c_cflag |= CREAD | CLOCAL; //8n1 see termios.h CS8 |
+    tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL = 1)
 
     tty.c_lflag &= ~ICANON;
-    tty.c_lflag &= ~ECHO;
-    tty.c_lflag &= ~ECHOE;
-    tty.c_lflag &= ~ECHONL;
-    tty.c_lflag &= ~ISIG;
+    if(uart->enable_echo)
+        tty.c_lflag |= ECHO; // Enable echo
+    else
+        tty.c_lflag &= ~ECHO; // Disable echo
 
-    tty.c_iflag &= ~(IXON | IXOFF | IXANY); // No software flow control
-    tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | PARMRK|ISTRIP|INLCR|IGNCR|ICRNL); // Disable especial handling of received bytes
+    if(uart->enable_erasure)
+        tty.c_lflag |= ECHOE; // Enable erasure
+    else
+        tty.c_lflag &= ~ECHOE; // Disable erasure
 
-    tty.c_oflag &= ~OPOST; // Prevent interpretation of output bytes
-    tty.c_oflag &= ~ONLCR; // Prevent conversion of new line to carriege
+    if(uart->enable_newline_echo)
+        tty.c_lflag |= ECHONL; // Enable new-line echo
+    else
+        tty.c_lflag &= ~ECHONL; // Disable new-line echo
 
-    tty.c_cc[VMIN]  = 0;
-    tty.c_cc[VTIME] = 10;
+    if(uart->enable_sig_interpretation)
+        tty.c_lflag |= ISIG; // Enable interpretation of INTR, QUIT and SUSP
+    else
+        tty.c_lflag &= ~ISIG; // Disable interpretation of INTR, QUIT and SUSP
 
-    cfsetispeed(&tty, cfg->baudrate);// B115200);
-    cfsetospeed(&tty, cfg->baudrate);// B115200);
-    //cfsetispeed(&tty, B115200);
-    //cfsetospeed(&tty, B115200);
+    if(uart->enable_sw_flow_control)
+        tty.c_iflag |= (IXON | IXOFF | IXANY); // Turn on s/w flow ctrl
+    else
+        tty.c_iflag &= ~(IXON | IXOFF | IXANY); // Turn off s/w flow ctrl
 
-    // Now let's configure the port
-    // Save tty settings, also checking for error
-    if (tcsetattr(cfg->fd, TCSANOW, &tty) != 0) {
+    if(uart->enable_bytes_special_handling)
+        tty.c_iflag |= (IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL); // Enable special handling of received bytes
+    else
+        tty.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL); // Disable any special handling of received bytes
+
+    tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
+    tty.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed
+
+    // tty.c_oflag &= ~OXTABS; // Prevent conversion of tabs to spaces (NOT PRESENT ON LINUX)
+    // tty.c_oflag &= ~ONOEOT; // Prevent removal of C-d chars (0x004) in output (NOT PRESENT ON LINUX)
+
+    tty.c_cc[VTIME] = uart->V_TIME;    // Wait for up to 1s (10 deciseconds), returning as soon as any data is received.
+    tty.c_cc[VMIN] = uart->V_MIN;
+
+    // Now we set custom baudrate
+    tty.c_cflag &= ~CBAUD;
+    tty.c_cflag |= CBAUDEX; 
+    
+    tty.c_ispeed = uart->baudrate;// input baudrate
+    tty.c_ospeed = uart->baudrate;// output baudrate
+
+
+    tcflush(uart->fd, TCIFLUSH);
+    if (ioctl(uart->fd, TCSETS2, &tty) == -1)
+    {
         printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
         return false;
     }
-    
+    tcflush(uart->fd, TCIFLUSH);
 
     return true;    
 }

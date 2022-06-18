@@ -15,8 +15,12 @@
 #include <stdlib.h> 
 #include <unistd.h> 
 //#include <asm/termios.h>
-#include <termios.h>
+//#include <termios.h>
 //#include <sys/ioctl.h>
+
+#include <asm/ioctls.h>
+#include <asm/termbits.h>
+
 #include <sys/types.h> 
 #include <stdbool.h>
 #include <unistd.h> 
@@ -41,16 +45,29 @@
 
 typedef struct{
 	char    port[UART_MAXPORTLEN];
+
+	int		nbits_per_byte;
+	bool	enable_parity_check;
+	bool	enable_two_stop_bits;
+	bool	enable_hw_flow_control;
+	bool 	enable_echo;
+	bool	enable_erasure;
+	bool	enable_newline_echo;
+	bool	enable_sig_interpretation;
+	bool 	enable_sw_flow_control;
+	bool	enable_bytes_special_handling;
+
 	int     baudrate;
 	int		V_MIN;
 	int		V_TIME;
+
 
 	int     fd;
 } uart_cfg;
 
 typedef struct{
 	int     	nb_cfg;
-	uart_cfg    cfg[UART_MAX_CFG];
+	uart_cfg    uart[UART_MAX_CFG];
 } uart_cfg_list;
 
 // Prototypes --------------------------------------------
@@ -66,13 +83,13 @@ typedef struct{
 void init_uart_cfg(uart_cfg * uart);
 
 /**
- * \fn bool configure_uart(uart_cfg * cfg)
+ * \fn bool configure_uart(uart_cfg * uart)
  * \brief Configures uart connection
  *
- * \param udp      The struct containing the uart configuration
+ * \param uart      The struct containing the uart configuration
  * 
  * \return true if succeeded.
  */
-bool configure_uart(uart_cfg * cfg);
+bool configure_uart(uart_cfg * uart);
 
 #endif
