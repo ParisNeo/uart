@@ -15,7 +15,7 @@ First import the header files
 #include<uart.h>
 ```
 if you are using c++, make sure you add extern "C" protection
-```c
+```cpp
 #ifdef __cplusplus
 extern "C"
 {
@@ -54,27 +54,27 @@ Here is the default configuration is you do nothing. It is built to communicate 
 ```c
 // Set custom configuration
 // Number of bits per byte
-uart->nbits_per_byte                = 8;
+uart_configuration.nbits_per_byte                = 8;
 // parity check is off by default
-uart->enable_parity_check           = false;
+uart_configuration.enable_parity_check           = false;
 // we use a single stop bit by default
-uart->enable_two_stop_bits          = false;
+uart_configuration.enable_two_stop_bits          = false;
 // by default hardware flow control is off
-uart->enable_hw_flow_control        = false;
+uart_configuration.enable_hw_flow_control        = false;
 // by default software flow control is off
-uart->enable_sw_flow_control        = false;
+uart_configuration.enable_sw_flow_control        = false;
 // by default echo is distabled
-uart->enable_echo                   = false;
+uart_configuration.enable_echo                   = false;
 // by default erasure is distabled
-uart->enable_erasure                = false;
+uart_configuration.enable_erasure                = false;
 // by default new line echo is distabled
-uart->enable_newline_echo           = false;
+uart_configuration.enable_newline_echo           = false;
 // by default new special bytes handling is deactivated
-uart->enable_bytes_special_handling = false;
+uart_configuration.enable_bytes_special_handling = false;
 // by default minimum number of bytes is 0
-uart->V_MIN                         = 0;
+uart_configuration.V_MIN                         = 0;
 // by default maximum time between bytes is 10 deciseconds (1s)
-uart->V_TIME                        = 10;
+uart_configuration.V_TIME                        = 10;
 ```
 
 
@@ -116,12 +116,142 @@ To send data to your device you can use:
 ```
 here len is the length of the data to send. If write_buf contains caracters, you may use strlen(write_buf) instead.
 
+# Complete example
+Let's write a complete application that can connect to an arduino and just show stuff that was sent by the board
+
+```c
+#include<stdio.h>
+#include<uart.h>
+
+// UART configuration
+uart_cfg uart_configuration;
+
+// Prepare buffers
+char write_buf[256];
+char read_buf[256];
+
+int main(int argc, char ** argv)
+{
+    // Initialize every thing to default
+    init_uart_cfg(&uart_configuration);
+
+    // Set port and baudrate
+    uart_configuration.port = "/dev/ttyUSB0";
+    uart_configuration.baudrate = 115200;
+
+    // Connecting UART 
+    printf("Configuring uart %s ...", uart_configuration.port);
+    if(configure_uart(&uart_configuration))
+    {
+        printf("OK\n"); //Success
+    }
+    else
+    {
+        printf("NOK\n");  // Failure
+        exit(1);
+    }
+    // Now we are ready to send and receive data
+    // First we send something
+    strcpy(write_buf, "Hello world");
+    write(uart_configuration.fd, write_buf, strlen(write_buf));
+    // Then we read something
+    int num_bytes = read(uart_configuration.fd, &read_buf, sizeof(read_buf));
+    if(num_bytes==0)
+    {
+        continue;
+    }
+    printf("received %s",read_buf);
+    // That's it!
+    // Now you can play with that, like putting the reception in a loop or another thread etc.
+}
+```
+
+# Complete example
+Here is a more complex code if you want more flexibility
+
+```c
+#include<stdio.h>
+#include<uart.h>
+
+// UART configuration
+uart_cfg uart_configuration;
+
+// Prepare buffers
+char write_buf[256];
+char read_buf[256];
+
+int main(int argc, char ** argv)
+{
+    // Initialize every thing to default
+    init_uart_cfg(&uart_configuration);
+
+    // Set port and baudrate
+    uart_configuration.port = "/dev/ttyUSB0";
+    uart_configuration.baudrate = 115200;
+
+    // Set other stuff
+    // Number of bits per byte
+    uart_configuration.nbits_per_byte                = 8;
+    // parity check is off by default
+    uart_configuration.enable_parity_check           = false;
+    // we use a single stop bit by default
+    uart_configuration.enable_two_stop_bits          = false;
+    // by default hardware flow control is off
+    uart_configuration.enable_hw_flow_control        = false;
+    // by default software flow control is off
+    uart_configuration.enable_sw_flow_control        = false;
+    // by default echo is distabled
+    uart_configuration.enable_echo                   = false;
+    // by default erasure is distabled
+    uart_configuration.enable_erasure                = false;
+    // by default new line echo is distabled
+    uart_configuration.enable_newline_echo           = false;
+    // by default new special bytes handling is deactivated
+    uart_configuration.enable_bytes_special_handling = false;
+    // by default minimum number of bytes is 0
+    uart_configuration.V_MIN                         = 0;
+    // by default maximum time between bytes is 10 deciseconds (1s)
+    uart_configuration.V_TIME                        = 10;
+    
+
+    // Connecting UART 
+    printf("Configuring uart %s ...", uart_configuration.port);
+    if(configure_uart(&uart_configuration))
+    {
+        printf("OK\n"); //Success
+    }
+    else
+    {
+        printf("NOK\n");  // Failure
+        exit(1);
+    }
+    // Now we are ready to send and receive data
+    // First we send something
+    strcpy(write_buf, "Hello world");
+    write(uart_configuration.fd, write_buf, strlen(write_buf));
+    // Then we read something
+    int num_bytes = read(uart_configuration.fd, &read_buf, sizeof(read_buf));
+    if(num_bytes==0)
+    {
+        continue;
+    }
+    printf("received %s",read_buf);
+    // That's it!
+    // Now you can play with that, like putting the reception in a loop or another thread etc.
+}
+```
 
 
+# Information
+This is one of multiple libraries I have developed to simplify some tasks we do with C on linux. The objective is for it to be open source, eazy to use and compatible with both c and cpp. The build system is make and is compatible with gcc building system. It is very eazy to use this with cmake or other build systems. All these libraries have been tested on raspberry pi with raspbian. They help starting a new application that requires configuration, communication with arduino tools and spreading information between multiple services on the raspberry pi.
+
+The licence is MIT, so you can use this code in your projects without worrying about licence contamination that could happen when using GPL licences. So you still can use it for free in commercial applications.
+
+Tests and bugfixes are welcome. Just clone it, repare it and send a pull request. I want to keep this code as clean and simple as possible so please avoid feature creaping.
 
 # Useful links
+Check out my [cfg library](https://github.com/ParisNeo/cfg) built in the same spirit as this library.
 Check out my [udp library](https://github.com/ParisNeo/udp) built in the same spirit as this library.
-
 
 
 
