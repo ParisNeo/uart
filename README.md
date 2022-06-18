@@ -119,6 +119,9 @@ here len is the length of the data to send. If write_buf contains caracters, you
 
 
 
+# Useful links
+Check out my [udp library](https://github.com/ParisNeo/udp) built in the same spirit as this library.
+
 
 
 
