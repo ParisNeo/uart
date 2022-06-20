@@ -13,22 +13,15 @@
 #include <stdbool.h>
 
 #include <unistd.h>
+#include <linux/serial.h>
+#include <linux/tty_flags.h>
 
-void show_tty_cfg_mem(struct termios * tty)
-{
-    printf("----\n");
-    for (int i =0;i<sizeof(struct termios);i++)
-    {
-        printf("%2x",((char*)tty)[i]);
-    }
-    printf("----\n");
-}
 
 /**
  * \fn void init_uart_cfg(uart_cfg * uart)
  * \brief Initializes the udp_cfg structure with default values (common values)
  *
- * \param udp      The struct containing the uart configuration
+ * \param uart      The struct containing the uart configuration
  * 
  * \return true if succeeded.
  */
@@ -55,7 +48,7 @@ void init_uart_cfg(uart_cfg * uart)
  * \fn void init_uart_cfg_list(uart_cfg_list * uart_list)
  * \brief Initializes the uart_cfg_list structure with default values
  *
- * \param udp_list      The struct containing the udp list configuration
+ * \param uart_list      The struct containing the uart list configuration
  * 
  * \return true if succeeded.
  */
@@ -73,7 +66,7 @@ void init_uart_cfg_list(uart_cfg_list * uart_list)
  * \fn bool configure_uart(uart_cfg * uart)
  * \brief Configures uart connection
  *
- * \param udp      The struct containing the uart configuration
+ * \param uart      The struct containing the uart configuration
  * 
  * \return true if succeeded.
  */
@@ -196,4 +189,37 @@ bool configure_uart(uart_cfg * uart)
     tcflush(uart->fd, TCIFLUSH);
 
     return true;    
+}
+/**
+ * \fn uart_activate_low_latency(uart_cfg * uart)
+ * \brief Activates low latency mode on linux systems. For example if you use an FTDI connection, this forces the timer to be reduced to 1ms instead of 16ms
+ *
+ * \param uart      The struct containing the uart configuration
+ * 
+ * \return nothing.
+ */
+void uart_activate_low_latency(uart_cfg * uart)
+{
+    struct serial_struct serial;    
+    ioctl(uart.fd, TIOCGSERIAL, &serial);
+    serial.flags |= ASYNC_LOW_LATENCY;
+    ioctl(uart.fd, TIOCSSERIAL, &serial);
+    sleep(1);
+}
+
+/**
+ * \fn void uart_set_buffer_sizes(uart_cfg * uart, int buffer_size)
+ * \brief sets the reception buffer size
+ *
+ * \param uart      The struct containing the uart configuration
+ * 
+ * \return nothing.
+ */
+void uart_set_buffer_sizes(uart_cfg * uart, int buffer_size)
+{
+    struct serial_struct serial;    
+    ioctl(uart.fd, TIOCGSERIAL, &serial);
+    serial.xmit_fifo_size = buffer_size;
+    ioctl(uart.fd, TIOCSSERIAL, &serial);
+    sleep(1);
 }

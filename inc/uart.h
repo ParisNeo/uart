@@ -92,4 +92,23 @@ void init_uart_cfg(uart_cfg * uart);
  */
 bool configure_uart(uart_cfg * uart);
 
+/**
+ * \fn uart_activate_low_latency(uart_cfg * uart)
+ * \brief Activates low latency mode on linux systems. For example if you use an FTDI connection, this forces the timer to be reduced to 1ms instead of 16ms
+ *
+ * \param uart      The struct containing the uart configuration
+ * 
+ * \return nothing.
+ */
+void uart_activate_low_latency(uart_cfg * uart);
+
+/**
+ * \fn void uart_set_buffer_sizes(uart_cfg * uart, int buffer_size)
+ * \brief sets the reception buffer size
+ *
+ * \param uart      The struct containing the uart configuration
+ * 
+ * \return nothing.
+ */
+void uart_set_buffer_sizes(uart_cfg * uart, int buffer_size);
 #endif

@@ -77,6 +77,19 @@ uart_configuration.V_MIN                         = 0;
 uart_configuration.V_TIME                        = 10;
 ```
 
+If you are using [FTDI](https://ftdichip.com/) component to communicate with uart, the chip uses a timer to pack the uart frames into USB frames. By default this timer is set to 16ms. Which means that you may not have a stable frame rate if you are running at higher frame rates (100fps for example). Fortunatuly, on linux, there is a way to reduce this timer interval to 1ms using ioctl commands. This library contains a function that allow enabling this mode directly.
+
+```c
+    // Activate low latency mode
+    uart_activate_low_latency(&uart_configuration);
+```
+
+You can also change the size of the reception buffer:
+
+```c
+    // Set buffer size
+    uart_set_buffer_sizes(&uart_configuration, 1024);
+```
 
 We are quite there. Now we configure the uart and open it:
 
