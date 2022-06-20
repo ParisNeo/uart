@@ -111,4 +111,27 @@ void uart_activate_low_latency(uart_cfg * uart);
  * \return nothing.
  */
 void uart_set_buffer_sizes(uart_cfg * uart, int buffer_size);
+
+/**
+ * \fn void uart_send_string(uart_cfg * uart, char* str)
+ * \brief sends a string to the uart driver
+ *
+ * \param uart     The struct containing the uart configuration
+ * \param str      The string to be sent (standard c zero ending string)
+ * 
+ * \return nothing.
+ */
+void uart_send_string(uart_cfg * uart, char* str);
+
+/**
+ * \fn void uart_send_string(uart_cfg * uart, char* str)
+ * \brief receives a string from the uart driver
+ *
+ * \param uart     The struct containing the uart configuration
+ * \param str      A buffer where to store the string being read
+ * 
+ * \return the number of received bytes.
+ */
+int uart_receive_string(uart_cfg * uart, char* str, int buffer_size);
+
 #endif

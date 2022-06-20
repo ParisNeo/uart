@@ -223,3 +223,40 @@ void uart_set_buffer_sizes(uart_cfg * uart, int buffer_size)
     ioctl(uart.fd, TIOCSSERIAL, &serial);
     sleep(1);
 }
+
+
+/**
+ * \fn void uart_send_string(uart_cfg * uart, char* str)
+ * \brief sends a string to the uart driver
+ *
+ * \param uart     The struct containing the uart configuration
+ * \param str      The string to be sent (standard c zero ending string)
+ * 
+ * \return nothing.
+ */
+void uart_send_string(uart_cfg * uart, char* str)
+{
+    write(uart->fd, str, strlen(str));
+}
+
+/**
+ * \fn void uart_send_string(uart_cfg * uart, char* str)
+ * \brief receives a string from the uart driver
+ *
+ * \param uart     The struct containing the uart configuration
+ * \param str      A buffer where to store the string being read
+ * 
+ * \return the number of received bytes.
+ */
+int uart_receive_string(uart_cfg * uart, char* str, int buffer_size)
+{
+    int nb_read_bytes=0;
+    while(nb_read_bytes<buffer_size)
+    {
+        int num_bytes = read(uart_configuration.fd, (&str)+nb_read_bytes, sizeof(buffer_size)-nb_read_bytes);
+        nb_read_bytes += num_bytes;
+        if str[nb_read_bytes]=='\0' || str[nb_read_bytes]=='\n' || str[nb_read_bytes]=='\r':
+            break;
+    }
+    return nb_read_bytes;
+}
