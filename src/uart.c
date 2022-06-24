@@ -35,6 +35,7 @@ void init_uart_cfg(uart_cfg * uart)
     uart->enable_two_stop_bits          = false;
     uart->enable_hw_flow_control        = false;
     uart->enable_sw_flow_control        = false;
+    uart->enable_canonical_mode         = false;
     uart->enable_echo                   = false;
     uart->enable_erasure                = false;
     uart->enable_newline_echo           = false;
@@ -74,7 +75,7 @@ bool configure_uart(uart_cfg * uart)
 {
 	struct  termios2 tty;
 
-    uart->fd = open(uart->port, O_RDWR);// | O_NOCTTY | O_NDELAY);
+    uart->fd = open(uart->port, O_RDWR | O_NOCTTY);//  | O_NDELAY);
 
     // Check for errors
     if (uart->fd < 0) {
@@ -132,7 +133,11 @@ bool configure_uart(uart_cfg * uart)
 
     tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL = 1)
 
-    tty.c_lflag &= ~ICANON;
+    if(uart->enable_canonical_mode)
+        tty.c_lflag |= ICANON; // use canonical mode
+    else
+        tty.c_lflag &= ~ICANON; // Don't use canonical mode
+
     if(uart->enable_echo)
         tty.c_lflag |= ECHO; // Enable echo
     else
@@ -201,9 +206,9 @@ bool configure_uart(uart_cfg * uart)
 void uart_activate_low_latency(uart_cfg * uart)
 {
     struct serial_struct serial;    
-    ioctl(uart.fd, TIOCGSERIAL, &serial);
+    ioctl(uart->fd, TIOCGSERIAL, &serial);
     serial.flags |= ASYNC_LOW_LATENCY;
-    ioctl(uart.fd, TIOCSSERIAL, &serial);
+    ioctl(uart->fd, TIOCSSERIAL, &serial);
     sleep(1);
 }
 
@@ -218,9 +223,9 @@ void uart_activate_low_latency(uart_cfg * uart)
 void uart_set_buffer_sizes(uart_cfg * uart, int buffer_size)
 {
     struct serial_struct serial;    
-    ioctl(uart.fd, TIOCGSERIAL, &serial);
+    ioctl(uart->fd, TIOCGSERIAL, &serial);
     serial.xmit_fifo_size = buffer_size;
-    ioctl(uart.fd, TIOCSSERIAL, &serial);
+    ioctl(uart->fd, TIOCSSERIAL, &serial);
     sleep(1);
 }
 
@@ -253,10 +258,13 @@ int uart_receive_string(uart_cfg * uart, char* str, int buffer_size)
     int nb_read_bytes=0;
     while(nb_read_bytes<buffer_size)
     {
-        int num_bytes = read(uart_configuration.fd, (&str)+nb_read_bytes, sizeof(buffer_size)-nb_read_bytes);
+        int num_bytes = read(uart->fd, (&str)+nb_read_bytes, sizeof(buffer_size)-nb_read_bytes);
         nb_read_bytes += num_bytes;
-        if str[nb_read_bytes]=='\0' || str[nb_read_bytes]=='\n' || str[nb_read_bytes]=='\r':
+        int nb_1 = nb_read_bytes-1;
+        if(str[nb_1]=='\0' || str[nb_1]=='\n' || str[nb_1]=='\r')
+        {
             break;
+        }
     }
     return nb_read_bytes;
 }

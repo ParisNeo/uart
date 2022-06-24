@@ -50,6 +50,7 @@ typedef struct{
 	bool	enable_parity_check;
 	bool	enable_two_stop_bits;
 	bool	enable_hw_flow_control;
+	bool	enable_canonical_mode;
 	bool 	enable_echo;
 	bool	enable_erasure;
 	bool	enable_newline_echo;

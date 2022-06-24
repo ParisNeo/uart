@@ -63,6 +63,8 @@ uart_configuration.enable_two_stop_bits          = false;
 uart_configuration.enable_hw_flow_control        = false;
 // by default software flow control is off
 uart_configuration.enable_sw_flow_control        = false;
+// by default canonical mode is deactivated
+uart_configuration.enable_canonical_mode         = false;
 // by default echo is distabled
 uart_configuration.enable_echo                   = false;
 // by default erasure is distabled
