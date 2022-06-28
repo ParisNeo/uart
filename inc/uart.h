@@ -84,6 +84,16 @@ typedef struct{
 void init_uart_cfg(uart_cfg * uart);
 
 /**
+ * \fn void init_uart_cfg_list(uart_cfg_list * uart_list)
+ * \brief Initializes the uart_cfg_list structure with default values
+ *
+ * \param uart_list      The struct containing the uart list configuration
+ * 
+ * \return true if succeeded.
+ */
+void init_uart_cfg_list(uart_cfg_list * uart_list);
+
+/**
  * \fn bool configure_uart(uart_cfg * uart)
  * \brief Configures uart connection
  *
