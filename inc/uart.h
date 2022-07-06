@@ -10,6 +10,8 @@
  */
 #ifndef __UART__
 #define __UART__
+#include <fcntl.h>
+#include <time.h>
 
 #include <stdio.h> 
 #include <stdlib.h> 
@@ -46,10 +48,19 @@
 typedef struct{
 	char    port[UART_MAXPORTLEN];
 
+	bool	open_prams_sync;
+	bool	open_prams_noblock;
+	bool	open_prams_noctty;
+	bool	open_prams_nodelay;
+
 	int		nbits_per_byte;
 	bool	enable_parity_check;
 	bool	enable_two_stop_bits;
 	bool	enable_hw_flow_control;
+
+	bool	enable_read;
+	bool	enable_ignore_ctrl_lines;
+
 	bool	enable_canonical_mode;
 	bool 	enable_echo;
 	bool	enable_erasure;

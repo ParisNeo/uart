@@ -8,6 +8,7 @@
  *	Provides helper tools to build udp connection .
  *
  */
+
 #include <uart.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -15,7 +16,6 @@
 #include <unistd.h>
 #include <linux/serial.h>
 #include <linux/tty_flags.h>
-
 
 /**
  * \fn void init_uart_cfg(uart_cfg * uart)
@@ -30,10 +30,22 @@ void init_uart_cfg(uart_cfg * uart)
     // Use default configuration
     strcpy(uart->port, UART_DEFAULT_COM_PORT);
     uart->baudrate                      = UART_DEFAULT_BAUD_RATE;
+
+    uart->open_prams_noblock            = false;
+    uart->open_prams_nodelay            = false;
+    uart->open_prams_noctty             = false;
+    uart->open_prams_sync               = false;
+
+
     uart->nbits_per_byte                = 8;
     uart->enable_parity_check           = false;
     uart->enable_two_stop_bits          = false;
     uart->enable_hw_flow_control        = false;
+
+
+	uart->enable_read                   = true;
+	uart->enable_ignore_ctrl_lines      = true;
+
     uart->enable_sw_flow_control        = false;
     uart->enable_canonical_mode         = false;
     uart->enable_echo                   = false;
@@ -74,8 +86,27 @@ void init_uart_cfg_list(uart_cfg_list * uart_list)
 bool configure_uart(uart_cfg * uart)
 {
 	struct  termios2 tty;
+    int flags=O_RDWR;
 
-    uart->fd = open(uart->port, O_RDWR | O_NOCTTY);//  | O_NDELAY);
+    if (uart->open_prams_sync)
+    {
+        flags |= O_SYNC;
+    }
+     
+    if (uart->open_prams_noblock)
+    {
+        flags |= O_NONBLOCK;
+    }
+    if (uart->open_prams_noctty)
+    {
+        flags |= O_NOCTTY;
+    }
+    if (uart->open_prams_nodelay)
+    {
+        flags |= O_NDELAY;
+    }
+
+    uart->fd = open(uart->port, flags);
 
     // Check for errors
     if (uart->fd < 0) {
@@ -127,11 +158,20 @@ bool configure_uart(uart_cfg * uart)
     }
 
     if(uart->enable_hw_flow_control)
-        tty.c_cflag &= ~CRTSCTS; // Disable RTS/CTS hardware flow control (most common)
-    else
         tty.c_cflag |= CRTSCTS; // Disable RTS/CTS hardware flow control (most common)
+    else
+        tty.c_cflag &= ~CRTSCTS; // Disable RTS/CTS hardware flow control (most common)
 
-    tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL = 1)
+    if(uart->enable_read)
+        tty.c_cflag |= CREAD ; // Turn on READ
+    else
+        tty.c_cflag &= ~CREAD;
+
+    if(uart->enable_ignore_ctrl_lines)
+        tty.c_cflag |= CLOCAL; // ignore ctrl lines (CLOCAL = 1)
+    else
+        tty.c_cflag &= ~CLOCAL; // ignore ctrl lines (CLOCAL = 0)
+
 
     if(uart->enable_canonical_mode)
         tty.c_lflag |= ICANON; // use canonical mode
